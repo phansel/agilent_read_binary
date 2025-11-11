@@ -45,9 +45,10 @@ def read_agilent_binary(fname, use_segments=False, include_time_vector=False, in
             wf_header = np.fromfile(f, dtype=waveform_header_dtype, count=1)
 
             #Grab important strings in a python 2/3 compatible way
-            channel_string = bytes(wf_header['waveform_string'][0]).decode('utf-8').replace(' ', '_')
-            date_string = bytes(wf_header['date_string'][0]).decode('utf-8')
-            time_string = bytes(wf_header['time_string'][0]).decode('utf-8')
+            # but strip any null characters.
+            channel_string = bytes(wf_header['waveform_string'][0]).decode('utf-8', errors='ignore').rstrip('\x00 ').lstrip('\x00 ').replace(' ', '_')
+            date_string    = bytes(wf_header['date_string'][0]).decode('utf-8', errors='ignore').rstrip('\x00 ').lstrip('\x00 ')
+            time_string    = bytes(wf_header['time_string'][0]).decode('utf-8', errors='ignore').rstrip('\x00 ').lstrip('\x00 ')
 
 
             #Start a new dictionary
@@ -64,7 +65,7 @@ def read_agilent_binary(fname, use_segments=False, include_time_vector=False, in
                 if key not in ['header_size', 'waveform_type', 'num_waveform_buffers', 'segment_index', 'time_tag']:
                     wf_dict[channel_string][key] = wf_header[key][0]
 
-            if include_datetime:
+            if include_datetime and date_string and time_string:
                 datetime = dp.parse(date_string + ' ' + time_string)
                 wf_dict[channel_string]['datetime'] = datetime
 
